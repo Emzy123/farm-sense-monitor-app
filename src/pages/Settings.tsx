@@ -1,186 +1,251 @@
 
 import React, { useState } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
+import { User, LogOut, Bell, Thermometer } from 'lucide-react';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
+import SensorConfig from '@/components/SensorConfig';
+import ToastNotification from '@/components/ToastNotification';
+import { useAuth } from '@/hooks/useAuth';
 import { useFarmData } from '@/hooks/useFarmData';
-import { User, LogOut, Save } from 'lucide-react';
 
-const Settings: React.FC = () => {
+const Settings = () => {
   const { user, logout } = useAuth();
-  const { isOnline, refreshData, isRefreshing } = useFarmData();
-  const { toast } = useToast();
+  const { 
+    sensorConnected, 
+    lastSensorError, 
+    sensorConfig, 
+    updateSensorConfig,
+    isOnline,
+    isRefreshing,
+    refreshData
+  } = useFarmData();
 
-  // Threshold settings
-  const [tempMin, setTempMin] = useState('15');
-  const [tempMax, setTempMax] = useState('35');
-  const [humidityMin, setHumidityMin] = useState('40');
-  const [humidityMax, setHumidityMax] = useState('80');
-  const [soilMin, setSoilMin] = useState('20');
-  const [soilMax, setSoilMax] = useState('80');
+  const [toast, setToast] = useState<{
+    message: string;
+    type: 'success' | 'error' | 'info';
+    isVisible: boolean;
+  }>({
+    message: '',
+    type: 'info',
+    isVisible: false,
+  });
 
-  const handleSaveThresholds = () => {
-    const thresholds = {
-      temperature: { min: parseFloat(tempMin), max: parseFloat(tempMax) },
-      humidity: { min: parseFloat(humidityMin), max: parseFloat(humidityMax) },
-      soilMoisture: { min: parseFloat(soilMin), max: parseFloat(soilMax) },
-    };
-    
-    localStorage.setItem('farmMonitorThresholds', JSON.stringify(thresholds));
-    toast({
-      title: "Settings Saved",
-      description: "Your alert thresholds have been updated.",
-    });
+  // Alert thresholds state
+  const [thresholds, setThresholds] = useState({
+    tempMin: Number(localStorage.getItem('tempMin') || '15'),
+    tempMax: Number(localStorage.getItem('tempMax') || '35'),
+    humidityMin: Number(localStorage.getItem('humidityMin') || '40'),
+    humidityMax: Number(localStorage.getItem('humidityMax') || '80'),
+    soilMoistureMin: Number(localStorage.getItem('soilMoistureMin') || '20'),
+    soilMoistureMax: Number(localStorage.getItem('soilMoistureMax') || '80'),
+  });
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info') => {
+    setToast({ message, type, isVisible: true });
   };
 
   const handleLogout = () => {
     logout();
-    toast({
-      title: "Logged Out",
-      description: "You have been successfully logged out.",
+    showToast('Logged out successfully', 'success');
+  };
+
+  const handleSaveThresholds = () => {
+    Object.entries(thresholds).forEach(([key, value]) => {
+      localStorage.setItem(key, value.toString());
     });
+    showToast('Threshold settings saved successfully', 'success');
+  };
+
+  const handleThresholdChange = (key: string, value: string) => {
+    const numValue = Number(value);
+    if (!isNaN(numValue)) {
+      setThresholds(prev => ({ ...prev, [key]: numValue }));
+    }
+  };
+
+  const handleSensorConfigUpdate = (ip: string, port: string, useMock: boolean) => {
+    updateSensorConfig(ip, port, useMock);
+    showToast(
+      useMock 
+        ? 'Switched to mock data mode' 
+        : `Sensor configuration updated: ${ip}:${port}`, 
+      'success'
+    );
+  };
+
+  const handleRefresh = async () => {
+    await refreshData();
+    showToast('Settings refreshed!', 'success');
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header isOnline={isOnline} onRefresh={refreshData} isRefreshing={isRefreshing} />
-      
-      <main className="p-4 pb-20 space-y-6">
-        {/* User Profile */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="w-5 h-5" />
-              Profile Information
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label className="text-sm font-medium text-gray-600">Name</Label>
-                <p className="text-lg font-semibold">{user?.name}</p>
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-gray-600">Farm Name</Label>
-                <p className="text-lg font-semibold">{user?.farmName}</p>
-              </div>
+    <div className="min-h-screen bg-gray-100 pb-20">
+      <Header 
+        isOnline={isOnline} 
+        onRefresh={handleRefresh} 
+        isRefreshing={isRefreshing}
+      />
+
+      <main className="p-4 space-y-6">
+        {/* User Profile Section */}
+        <div className="bg-white rounded-xl p-6 shadow-lg">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="bg-green-100 p-3 rounded-full">
+              <User className="w-8 h-8 text-green-600" />
             </div>
             <div>
-              <Label className="text-sm font-medium text-gray-600">Email</Label>
-              <p className="text-lg font-semibold">{user?.email}</p>
+              <h2 className="text-xl font-bold text-gray-800">Profile</h2>
+              <p className="text-gray-600">Manage your account settings</p>
             </div>
-            <Button 
-              onClick={handleLogout}
-              variant="destructive"
-              className="w-full mt-4"
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              Log Out
-            </Button>
-          </CardContent>
-        </Card>
+          </div>
+          
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Name</span>
+              <span className="font-medium text-gray-800">{user?.name}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Email</span>
+              <span className="font-medium text-gray-800">{user?.email}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Farm</span>
+              <span className="font-medium text-gray-800">{user?.farmName}</span>
+            </div>
+          </div>
+
+          <button
+            onClick={handleLogout}
+            className="w-full mt-6 bg-red-500 text-white rounded-lg px-4 py-3 font-medium hover:bg-red-600 transition-colors flex items-center justify-center gap-2"
+          >
+            <LogOut className="w-5 h-5" />
+            Log Out
+          </button>
+        </div>
+
+        {/* Sensor Configuration */}
+        <SensorConfig
+          sensorConfig={sensorConfig}
+          sensorConnected={sensorConnected}
+          lastSensorError={lastSensorError}
+          onUpdateConfig={handleSensorConfigUpdate}
+        />
 
         {/* Alert Thresholds */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Alert Thresholds</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Temperature */}
-            <div className="space-y-2">
-              <Label className="text-base font-medium">Temperature (°C)</Label>
+        <div className="bg-white rounded-xl p-6 shadow-lg">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="bg-yellow-100 p-3 rounded-full">
+              <Bell className="w-8 h-8 text-yellow-600" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-gray-800">Alert Thresholds</h2>
+              <p className="text-gray-600">Set warning limits for your sensors</p>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            {/* Temperature Thresholds */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <Thermometer className="w-5 h-5 text-red-500" />
+                <h3 className="font-semibold text-gray-800">Temperature (°C)</h3>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="tempMin" className="text-sm">Minimum</Label>
-                  <Input
-                    id="tempMin"
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Minimum</label>
+                  <input
                     type="number"
-                    value={tempMin}
-                    onChange={(e) => setTempMin(e.target.value)}
-                    placeholder="15"
+                    value={thresholds.tempMin}
+                    onChange={(e) => handleThresholdChange('tempMin', e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="tempMax" className="text-sm">Maximum</Label>
-                  <Input
-                    id="tempMax"
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Maximum</label>
+                  <input
                     type="number"
-                    value={tempMax}
-                    onChange={(e) => setTempMax(e.target.value)}
-                    placeholder="35"
+                    value={thresholds.tempMax}
+                    onChange={(e) => handleThresholdChange('tempMax', e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
                   />
                 </div>
               </div>
             </div>
 
-            {/* Humidity */}
-            <div className="space-y-2">
-              <Label className="text-base font-medium">Humidity (%)</Label>
+            {/* Humidity Thresholds */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-5 h-5 bg-blue-500 rounded-full"></div>
+                <h3 className="font-semibold text-gray-800">Humidity (%)</h3>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="humidityMin" className="text-sm">Minimum</Label>
-                  <Input
-                    id="humidityMin"
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Minimum</label>
+                  <input
                     type="number"
-                    value={humidityMin}
-                    onChange={(e) => setHumidityMin(e.target.value)}
-                    placeholder="40"
+                    value={thresholds.humidityMin}
+                    onChange={(e) => handleThresholdChange('humidityMin', e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="humidityMax" className="text-sm">Maximum</Label>
-                  <Input
-                    id="humidityMax"
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Maximum</label>
+                  <input
                     type="number"
-                    value={humidityMax}
-                    onChange={(e) => setHumidityMax(e.target.value)}
-                    placeholder="80"
+                    value={thresholds.humidityMax}
+                    onChange={(e) => handleThresholdChange('humidityMax', e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
                   />
                 </div>
               </div>
             </div>
 
-            {/* Soil Moisture */}
-            <div className="space-y-2">
-              <Label className="text-base font-medium">Soil Moisture (%)</Label>
+            {/* Soil Moisture Thresholds */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-5 h-5 bg-amber-600 rounded-full"></div>
+                <h3 className="font-semibold text-gray-800">Soil Moisture (%)</h3>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="soilMin" className="text-sm">Minimum</Label>
-                  <Input
-                    id="soilMin"
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Minimum</label>
+                  <input
                     type="number"
-                    value={soilMin}
-                    onChange={(e) => setSoilMin(e.target.value)}
-                    placeholder="20"
+                    value={thresholds.soilMoistureMin}
+                    onChange={(e) => handleThresholdChange('soilMoistureMin', e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="soilMax" className="text-sm">Maximum</Label>
-                  <Input
-                    id="soilMax"
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Maximum</label>
+                  <input
                     type="number"
-                    value={soilMax}
-                    onChange={(e) => setSoilMax(e.target.value)}
-                    placeholder="80"
+                    value={thresholds.soilMoistureMax}
+                    onChange={(e) => handleThresholdChange('soilMoistureMax', e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
                   />
                 </div>
               </div>
             </div>
+          </div>
 
-            <Button onClick={handleSaveThresholds} className="w-full bg-green-600 hover:bg-green-700">
-              <Save className="w-4 h-4 mr-2" />
-              Save Thresholds
-            </Button>
-          </CardContent>
-        </Card>
+          <button
+            onClick={handleSaveThresholds}
+            className="w-full mt-6 bg-green-500 text-white rounded-lg px-4 py-3 font-medium hover:bg-green-600 transition-colors"
+          >
+            Save Threshold Settings
+          </button>
+        </div>
       </main>
 
       <BottomNavigation />
+      
+      <ToastNotification
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.isVisible}
+        onClose={() => setToast(prev => ({ ...prev, isVisible: false }))}
+      />
     </div>
   );
 };
