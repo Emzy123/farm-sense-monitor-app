@@ -9,7 +9,42 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      sensor_readings: {
+        Row: {
+          battery_voltage: number | null
+          created_at: string
+          humidity: number | null
+          id: string
+          is_charging: boolean | null
+          soil_moisture: number | null
+          temperature: number | null
+          timestamp: string
+          user_id: string
+        }
+        Insert: {
+          battery_voltage?: number | null
+          created_at?: string
+          humidity?: number | null
+          id?: string
+          is_charging?: boolean | null
+          soil_moisture?: number | null
+          temperature?: number | null
+          timestamp: string
+          user_id: string
+        }
+        Update: {
+          battery_voltage?: number | null
+          created_at?: string
+          humidity?: number | null
+          id?: string
+          is_charging?: boolean | null
+          soil_moisture?: number | null
+          temperature?: number | null
+          timestamp?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
