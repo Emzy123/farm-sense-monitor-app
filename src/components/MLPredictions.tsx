@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, AlertTriangle, CheckCircle, Brain } from 'lucide-react';
+import { TrendingUp, AlertTriangle, CheckCircle, Brain, Droplets } from 'lucide-react';
 import { SensorData } from '@/hooks/useFarmData';
 
 interface Prediction {
