@@ -8,6 +8,7 @@ import QuickActions from '@/components/QuickActions';
 import BottomNavigation from '@/components/BottomNavigation';
 import ToastNotification from '@/components/ToastNotification';
 import { useFarmData } from '@/hooks/useFarmData';
+import { getDataStatus } from '@/utils/dataProcessing';
 
 const Index = () => {
   const { currentData, isOnline, isRefreshing, refreshData, getChartData } = useFarmData();
@@ -33,25 +34,6 @@ const Index = () => {
 
   const handleChartTimeRangeChange = (range: '24h' | '7d') => {
     setChartTimeRange(range);
-  };
-
-  const getDataStatus = (type: 'temperature' | 'humidity' | 'soilMoisture', value: number) => {
-    switch (type) {
-      case 'temperature':
-        if (value < 15 || value > 35) return 'critical';
-        if (value < 18 || value > 32) return 'warning';
-        return 'normal';
-      case 'humidity':
-        if (value < 40 || value > 80) return 'critical';
-        if (value < 45 || value > 75) return 'warning';
-        return 'normal';
-      case 'soilMoisture':
-        if (value < 20) return 'critical';
-        if (value < 30) return 'warning';
-        return 'normal';
-      default:
-        return 'normal';
-    }
   };
 
   const chartData = getChartData(chartTimeRange);
