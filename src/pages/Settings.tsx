@@ -5,6 +5,8 @@ import BottomNavigation from '@/components/BottomNavigation';
 import SensorConfig from '@/components/SensorConfig';
 import ThresholdConfig from '@/components/ThresholdConfig';
 import UserProfile from '@/components/UserProfile';
+import NotificationSettingsComponent from '@/components/NotificationSettings';
+import MultiSensorConfig from '@/components/MultiSensorConfig';
 import ToastNotification from '@/components/ToastNotification';
 import { useAuth } from '@/hooks/useAuth';
 import { useFarmData } from '@/hooks/useFarmData';
@@ -55,6 +57,18 @@ const Settings = () => {
     showToast('Settings refreshed!', 'success');
   };
 
+  const handleThresholdSave = (message: string) => {
+    showToast(message, 'success');
+  };
+
+  const handleNotificationSave = () => {
+    showToast('Notification settings saved successfully', 'success');
+  };
+
+  const handleSensorUpdate = () => {
+    showToast('Multi-sensor configuration updated', 'success');
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 pb-20">
       <Header 
@@ -67,6 +81,9 @@ const Settings = () => {
         {/* User Profile Section */}
         <UserProfile onLogout={handleLogout} />
 
+        {/* Multi-Sensor Configuration */}
+        <MultiSensorConfig onSensorUpdate={handleSensorUpdate} />
+
         {/* Sensor Configuration */}
         <SensorConfig
           sensorConfig={sensorConfig}
@@ -76,7 +93,10 @@ const Settings = () => {
         />
 
         {/* Alert Thresholds */}
-        <ThresholdConfig onSave={showToast} />
+        <ThresholdConfig onSave={handleThresholdSave} />
+
+        {/* Notification Settings */}
+        <NotificationSettingsComponent onSave={handleNotificationSave} />
       </main>
 
       <BottomNavigation />

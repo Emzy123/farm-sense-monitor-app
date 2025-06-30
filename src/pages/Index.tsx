@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Thermometer, Droplets, Gauge } from 'lucide-react';
 import Header from '@/components/Header';
 import DataCard from '@/components/DataCard';
-import FarmChart from '@/components/FarmChart';
+import AdvancedChart from '@/components/AdvancedChart';
 import QuickActions from '@/components/QuickActions';
 import BottomNavigation from '@/components/BottomNavigation';
 import ToastNotification from '@/components/ToastNotification';
@@ -36,6 +36,10 @@ const Index = () => {
     setChartTimeRange(range);
   };
 
+  const handleExport = (format: 'png' | 'csv' | 'json') => {
+    showToast(`Data exported as ${format.toUpperCase()}`, 'success');
+  };
+
   const chartData = getChartData(chartTimeRange);
 
   React.useEffect(() => {
@@ -55,8 +59,8 @@ const Index = () => {
       <main className="p-4 space-y-6">
         {/* Welcome Section */}
         <div className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl p-6 shadow-lg">
-          <h2 className="text-2xl font-bold mb-2">Welcome to Your Farm</h2>
-          <p className="text-green-100">Monitor your crops in real-time and make informed decisions.</p>
+          <h2 className="text-2xl font-bold mb-2">Welcome to Your Smart Farm</h2>
+          <p className="text-green-100">Monitor your crops in real-time with advanced analytics and make informed decisions.</p>
         </div>
 
         {/* Real-time Data Cards */}
@@ -92,13 +96,14 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Chart Section */}
+        {/* Advanced Chart Section */}
         <div className="space-y-4">
-          <h2 className="text-xl font-bold text-gray-800">Data Trends</h2>
-          <FarmChart 
+          <h2 className="text-xl font-bold text-gray-800">Advanced Data Analysis</h2>
+          <AdvancedChart 
             data={chartData}
             timeRange={chartTimeRange}
             onTimeRangeChange={handleChartTimeRangeChange}
+            onExport={handleExport}
           />
         </div>
 
