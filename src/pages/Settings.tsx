@@ -12,6 +12,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useFarmData } from '@/hooks/useFarmData';
 
 const Settings = () => {
+  console.log('Settings page loading...');
   const { logout } = useAuth();
   const { 
     sensorConnected, 

@@ -10,7 +10,9 @@ import ToastNotification from '@/components/ToastNotification';
 import { useFarmData } from '@/hooks/useFarmData';
 
 const Advanced = () => {
+  console.log('Advanced page loading...');
   const { currentData, isOnline, isRefreshing, refreshData, getChartData } = useFarmData();
+  console.log('Advanced page data loaded:', { currentData, isOnline });
   const [toast, setToast] = useState<{
     message: string;
     type: 'success' | 'error' | 'info';
