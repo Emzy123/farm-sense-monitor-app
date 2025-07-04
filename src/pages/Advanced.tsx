@@ -5,7 +5,6 @@ import BottomNavigation from '@/components/BottomNavigation';
 import WeatherIntegration from '@/components/WeatherIntegration';
 import MLPredictions from '@/components/MLPredictions';
 import IrrigationControl from '@/components/IrrigationControl';
-import MobilePushNotifications from '@/components/MobilePushNotifications';
 import ToastNotification from '@/components/ToastNotification';
 import { useFarmData } from '@/hooks/useFarmData';
 
@@ -44,9 +43,6 @@ const Advanced = () => {
     showToast(`Irrigation stopped for ${zoneId}`, 'info');
   };
 
-  const handleNotificationSent = (message: string) => {
-    showToast(message, 'success');
-  };
 
   const historicalData = getChartData('7d').map(item => ({
     temperature: item.temperature,
@@ -89,10 +85,6 @@ const Advanced = () => {
           onIrrigationStop={handleIrrigationStop}
         />
 
-        {/* Mobile Push Notifications */}
-        <MobilePushNotifications 
-          onNotificationSent={handleNotificationSent}
-        />
       </main>
 
       <BottomNavigation />

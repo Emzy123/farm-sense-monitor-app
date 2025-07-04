@@ -6,6 +6,7 @@ import SensorConfig from '@/components/SensorConfig';
 import ThresholdConfig from '@/components/ThresholdConfig';
 import UserProfile from '@/components/UserProfile';
 import NotificationSettingsComponent from '@/components/NotificationSettings';
+import MobilePushNotifications from '@/components/MobilePushNotifications';
 import MultiSensorConfig from '@/components/MultiSensorConfig';
 import ToastNotification from '@/components/ToastNotification';
 import { useAuth } from '@/hooks/useAuth';
@@ -70,6 +71,10 @@ const Settings = () => {
     showToast('Multi-sensor configuration updated', 'success');
   };
 
+  const handleNotificationSent = (message: string) => {
+    showToast(message, 'success');
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 pb-20">
       <Header 
@@ -98,6 +103,11 @@ const Settings = () => {
 
         {/* Notification Settings */}
         <NotificationSettingsComponent onSave={handleNotificationSave} />
+
+        {/* Mobile Push Notifications */}
+        <MobilePushNotifications 
+          onNotificationSent={handleNotificationSent}
+        />
       </main>
 
       <BottomNavigation />
