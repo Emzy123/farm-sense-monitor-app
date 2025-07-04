@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Home, Bell, History, Settings, Zap } from 'lucide-react';
+import { Home, Bell, History, Zap } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const BottomNavigation = () => {
@@ -12,12 +12,11 @@ const BottomNavigation = () => {
     { icon: Bell, label: 'Alerts', path: '/alerts' },
     { icon: History, label: 'History', path: '/history' },
     { icon: Zap, label: 'Advanced', path: '/advanced' },
-    { icon: Settings, label: 'Settings', path: '/settings' },
   ];
 
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
-      <div className="grid grid-cols-5 h-16">
+      <div className="grid grid-cols-4 h-16">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.path;
