@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Home, Bell, History, Zap } from 'lucide-react';
+import { Home, Bell, History, Settings } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const BottomNavigation = () => {
@@ -11,7 +11,7 @@ const BottomNavigation = () => {
     { icon: Home, label: 'Home', path: '/' },
     { icon: Bell, label: 'Alerts', path: '/alerts' },
     { icon: History, label: 'History', path: '/history' },
-    { icon: Zap, label: 'Advanced', path: '/advanced' },
+    { icon: Settings, label: 'Settings', path: '/settings' },
   ];
 
   return (

@@ -1,7 +1,6 @@
 
 import React from 'react';
-import { RefreshCw, Wifi, WifiOff, Settings } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { RefreshCw, Wifi, WifiOff } from 'lucide-react';
 
 interface HeaderProps {
   isOnline: boolean;
@@ -10,7 +9,6 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ isOnline, onRefresh, isRefreshing }) => {
-  const navigate = useNavigate();
 
   return (
     <header className="bg-green-500 text-white p-4 flex justify-between items-center shadow-lg">
@@ -30,12 +28,6 @@ const Header: React.FC<HeaderProps> = ({ isOnline, onRefresh, isRefreshing }) =>
           className="focus:outline-none p-1 rounded-full hover:bg-green-600 transition-colors"
         >
           <RefreshCw className={`w-6 h-6 ${isRefreshing ? 'animate-spin' : ''}`} />
-        </button>
-        <button
-          onClick={() => navigate('/settings')}
-          className="focus:outline-none p-1 rounded-full hover:bg-green-600 transition-colors"
-        >
-          <Settings className="w-6 h-6" />
         </button>
       </div>
     </header>
