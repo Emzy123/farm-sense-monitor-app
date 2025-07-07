@@ -6,6 +6,7 @@ import SensorConfig from '@/components/SensorConfig';
 import ThresholdConfig from '@/components/ThresholdConfig';
 import UserProfile from '@/components/UserProfile';
 import NotificationSettingsComponent from '@/components/NotificationSettings';
+import SimpleNotificationPrefs from '@/components/SimpleNotificationPrefs';
 
 import MultiSensorConfig from '@/components/MultiSensorConfig';
 import ToastNotification from '@/components/ToastNotification';
@@ -100,6 +101,9 @@ const Settings = () => {
 
         {/* Notification Settings */}
         <NotificationSettingsComponent onSave={handleNotificationSave} />
+
+        {/* Simple Notification Preferences */}
+        <SimpleNotificationPrefs onSave={(message) => showToast(message, 'success')} />
 
       </main>
 
