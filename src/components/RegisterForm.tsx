@@ -58,7 +58,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onRegister, onSwitchToLogin
     } catch (error) {
       toast({
         title: "Registration Failed",
-        description: "An error occurred during registration",
+        description: error instanceof Error ? error.message : "An error occurred during registration",
         variant: "destructive",
       });
     }
