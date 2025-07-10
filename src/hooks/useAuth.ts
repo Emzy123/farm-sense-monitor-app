@@ -1,5 +1,7 @@
 
 import { useState, useEffect, createContext, useContext } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 
 export interface User {
   id: string;
@@ -28,44 +30,81 @@ export const useAuth = () => {
 
 export const useAuthHook = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [session, setSession] = useState<Session | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Check for stored user on app start
   useEffect(() => {
-    const storedUser = localStorage.getItem('farmMonitorUser');
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch (error) {
-        console.error('Error parsing stored user:', error);
-        localStorage.removeItem('farmMonitorUser');
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setSession(session);
+        
+        if (session?.user) {
+          // Fetch user profile from our profiles table
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('user_id', session.user.id)
+            .single();
+          
+          if (profile) {
+            setUser({
+              id: session.user.id,
+              email: session.user.email!,
+              name: profile.name || '',
+              farmName: profile.farm_name || '',
+            });
+          }
+        } else {
+          setUser(null);
+        }
+        setIsLoading(false);
       }
-    }
+    );
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session?.user) {
+        // Fetch user profile from our profiles table
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .single()
+          .then(({ data: profile }) => {
+            if (profile) {
+              setUser({
+                id: session.user.id,
+                email: session.user.email!,
+                name: profile.name || '',
+                farmName: profile.farm_name || '',
+              });
+            }
+            setIsLoading(false);
+          });
+      } else {
+        setIsLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Get stored users
-      const storedUsers = JSON.parse(localStorage.getItem('farmMonitorUsers') || '[]');
-      const foundUser = storedUsers.find((u: any) => u.email === email && u.password === password);
-      
-      if (!foundUser) {
-        throw new Error('Invalid credentials');
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        if (error.message.includes('Email not confirmed')) {
+          throw new Error('Please check your email and click the confirmation link before signing in.');
+        }
+        throw error;
       }
-      
-      const userData: User = {
-        id: foundUser.id,
-        email: foundUser.email,
-        name: foundUser.name,
-        farmName: foundUser.farmName,
-      };
-      
-      setUser(userData);
-      localStorage.setItem('farmMonitorUser', JSON.stringify(userData));
     } finally {
       setIsLoading(false);
     }
@@ -74,46 +113,38 @@ export const useAuthHook = () => {
   const register = async (email: string, password: string, name: string, farmName: string) => {
     setIsLoading(true);
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const redirectUrl = `${window.location.origin}/`;
       
-      // Get existing users
-      const storedUsers = JSON.parse(localStorage.getItem('farmMonitorUsers') || '[]');
-      
-      // Check if user already exists
-      if (storedUsers.find((u: any) => u.email === email)) {
-        throw new Error('User already exists');
-      }
-      
-      // Create new user
-      const newUser = {
-        id: Date.now().toString(),
+      const { error } = await supabase.auth.signUp({
         email,
-        password, // In production, this would be hashed
-        name,
-        farmName,
-      };
-      
-      storedUsers.push(newUser);
-      localStorage.setItem('farmMonitorUsers', JSON.stringify(storedUsers));
-      
-      const userData: User = {
-        id: newUser.id,
-        email: newUser.email,
-        name: newUser.name,
-        farmName: newUser.farmName,
-      };
-      
-      setUser(userData);
-      localStorage.setItem('farmMonitorUser', JSON.stringify(userData));
+        password,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            name,
+            farm_name: farmName,
+          },
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      // Don't set user here - they need to confirm email first
+      throw new Error('Please check your email and click the confirmation link to complete your registration.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error('Error signing out:', error);
+    }
     setUser(null);
-    localStorage.removeItem('farmMonitorUser');
+    setSession(null);
   };
 
   return {
