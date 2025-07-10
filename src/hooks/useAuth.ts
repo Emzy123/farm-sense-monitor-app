@@ -113,13 +113,10 @@ export const useAuthHook = () => {
   const register = async (email: string, password: string, name: string, farmName: string) => {
     setIsLoading(true);
     try {
-      const redirectUrl = `${window.location.origin}/`;
-      
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: redirectUrl,
           data: {
             name,
             farm_name: farmName,
@@ -131,8 +128,7 @@ export const useAuthHook = () => {
         throw error;
       }
 
-      // Don't set user here - they need to confirm email first
-      throw new Error('Please check your email and click the confirmation link to complete your registration.');
+      // User will be automatically set by the auth state change listener
     } finally {
       setIsLoading(false);
     }
