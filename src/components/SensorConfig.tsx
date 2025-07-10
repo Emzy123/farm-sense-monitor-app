@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Wifi, WifiOff, Settings } from 'lucide-react';
+import { Wifi, WifiOff, Settings, Zap, Search, CheckCircle } from 'lucide-react';
 
 interface SensorConfigProps {
   sensorConfig: {
@@ -23,6 +23,8 @@ const SensorConfig: React.FC<SensorConfigProps> = ({
   const [ip, setIp] = useState(sensorConfig.sensorIP);
   const [port, setPort] = useState(sensorConfig.sensorPort);
   const [useMock, setUseMock] = useState(sensorConfig.useMockData);
+  const [isScanning, setIsScanning] = useState(false);
+  const [discoveredDevices, setDiscoveredDevices] = useState<any[]>([]);
 
   const handleSave = () => {
     onUpdateConfig(ip, port, useMock);
@@ -34,6 +36,34 @@ const SensorConfig: React.FC<SensorConfigProps> = ({
     setPort(sensorConfig.sensorPort);
     setUseMock(sensorConfig.useMockData);
     setIsExpanded(false);
+  };
+
+  const scanForDevices = async () => {
+    setIsScanning(true);
+    try {
+      // Try to discover IoT devices via Seam
+      const response = await fetch('https://lnfqwhplvmmstfwtbtae.supabase.co/functions/v1/seam-iot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'discover_devices' })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setDiscoveredDevices(data.devices || []);
+      }
+    } catch (error) {
+      console.error('Device discovery failed:', error);
+    }
+    setIsScanning(false);
+  };
+
+  const selectDevice = (device: any) => {
+    if (device.type === 'sensor' || device.capabilities?.includes('sensor')) {
+      setIp(device.ip || '192.168.1.100');
+      setPort('80');
+      setUseMock(false);
+    }
   };
 
   return (
@@ -147,15 +177,75 @@ const SensorConfig: React.FC<SensorConfigProps> = ({
         </div>
       )}
 
-      {/* Instructions */}
+      {/* Device Discovery */}
+      {isExpanded && !useMock && (
+        <div className="mt-4 p-4 bg-green-50 rounded-lg">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="font-semibold text-green-800">Arduino Device Discovery</h4>
+            <button
+              onClick={scanForDevices}
+              disabled={isScanning}
+              className="flex items-center gap-2 px-3 py-1 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 disabled:opacity-50"
+            >
+              {isScanning ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Scanning...
+                </>
+              ) : (
+                <>
+                  <Search className="w-4 h-4" />
+                  Scan Network
+                </>
+              )}
+            </button>
+          </div>
+          
+          {discoveredDevices.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-sm text-green-700 font-medium">Found Devices:</p>
+              {discoveredDevices.map((device, index) => (
+                <div key={index} className="flex items-center justify-between p-2 bg-white rounded border">
+                  <div>
+                    <p className="font-medium text-gray-800">{device.name}</p>
+                    <p className="text-xs text-gray-600">{device.type} • {device.connected ? 'Connected' : 'Available'}</p>
+                  </div>
+                  <button
+                    onClick={() => selectDevice(device)}
+                    className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded text-xs hover:bg-green-200"
+                  >
+                    <CheckCircle className="w-3 h-3" />
+                    Use
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Quick Setup Guide */}
       {isExpanded && !useMock && (
         <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-          <h4 className="font-semibold text-blue-800 mb-2">Setup Instructions</h4>
-          <div className="text-sm text-blue-700 space-y-1">
-            <p>1. Connect your Arduino sensor device to the same WiFi network</p>
-            <p>2. Find your sensor's IP address (check router admin or Arduino serial output)</p>
-            <p>3. Ensure your sensor exposes HTTP endpoint: /api/sensors/current</p>
-            <p>4. Expected JSON format: {`{"temperature": 25.5, "humidity": 60, "soilMoisture": 35}`}</p>
+          <h4 className="font-semibold text-blue-800 mb-2">Arduino Setup Guide</h4>
+          <div className="text-sm text-blue-700 space-y-2">
+            <div className="flex items-start gap-2">
+              <Zap className="w-4 h-4 mt-0.5 text-blue-600" />
+              <div>
+                <p className="font-medium">Hardware Connection:</p>
+                <p>Connect DHT22 (temp/humidity) and soil moisture sensor to Arduino</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <Wifi className="w-4 h-4 mt-0.5 text-blue-600" />
+              <div>
+                <p className="font-medium">WiFi Setup:</p>
+                <p>Connect Arduino to same network, expose endpoint: /api/sensors/current</p>
+              </div>
+            </div>
+            <div className="bg-blue-100 p-2 rounded text-xs font-mono">
+              Expected JSON: {`{"temperature": 25.5, "humidity": 60, "soilMoisture": 35}`}
+            </div>
           </div>
         </div>
       )}

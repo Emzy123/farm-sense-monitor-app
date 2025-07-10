@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, AlertTriangle, CheckCircle, Brain, Droplets } from 'lucide-react';
+import { TrendingUp, AlertTriangle, CheckCircle, Brain, Droplets, Loader } from 'lucide-react';
 import { SensorData } from '@/hooks/useFarmData';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Prediction {
   type: 'irrigation' | 'fertilization' | 'harvest' | 'pest_control';
@@ -14,66 +15,110 @@ interface Prediction {
 interface MLPredictionsProps {
   currentData: SensorData;
   historicalData: SensorData[];
+  weatherData?: any;
 }
 
-const MLPredictions: React.FC<MLPredictionsProps> = ({ currentData, historicalData }) => {
+const MLPredictions: React.FC<MLPredictionsProps> = ({ currentData, historicalData, weatherData }) => {
   const [predictions, setPredictions] = useState<Prediction[]>([]);
+  const [aiInsights, setAiInsights] = useState<string>('');
   const [loading, setLoading] = useState(false);
 
-  const generatePredictions = () => {
+  const generatePredictions = async () => {
     setLoading(true);
     
-    // Simulate ML predictions based on current conditions
-    const newPredictions: Prediction[] = [];
-    
-    // Soil moisture prediction
-    if (currentData.soilMoisture < 30) {
-      newPredictions.push({
-        type: 'irrigation',
-        confidence: 0.85,
-        recommendation: 'Irrigation recommended within 24 hours. Soil moisture is below optimal range.',
-        timeframe: '24 hours',
-        priority: 'high'
+    try {
+      // Get AI predictions from OpenAI
+      const { data, error } = await supabase.functions.invoke('ml-predictions', {
+        body: { 
+          sensorData: currentData, 
+          weatherData,
+          historicalData
+        }
       });
+
+      if (error) throw error;
+
+      // Process AI response and create structured predictions
+      const newPredictions: Prediction[] = [];
+      
+      // Convert AI insights to structured predictions
+      if (data.irrigationScore && data.irrigationScore > 7) {
+        newPredictions.push({
+          type: 'irrigation',
+          confidence: 0.9,
+          recommendation: `Irrigation urgently needed. Score: ${data.irrigationScore}/10`,
+          timeframe: '6-12 hours',
+          priority: 'high'
+        });
+      } else if (data.irrigationScore && data.irrigationScore > 4) {
+        newPredictions.push({
+          type: 'irrigation',
+          confidence: 0.7,
+          recommendation: `Consider irrigation soon. Score: ${data.irrigationScore}/10`,
+          timeframe: '24-48 hours',
+          priority: 'medium'
+        });
+      }
+
+      // Add risk factor predictions
+      if (data.riskFactors && data.riskFactors.length > 0) {
+        data.riskFactors.forEach((risk: string) => {
+          newPredictions.push({
+            type: 'pest_control',
+            confidence: 0.75,
+            recommendation: risk,
+            timeframe: '1-3 days',
+            priority: 'medium'
+          });
+        });
+      }
+
+      // Add recommendations as predictions
+      if (data.recommendations && data.recommendations.length > 0) {
+        data.recommendations.forEach((rec: string) => {
+          newPredictions.push({
+            type: 'fertilization',
+            confidence: 0.8,
+            recommendation: rec,
+            timeframe: '2-5 days',
+            priority: 'low'
+          });
+        });
+      }
+
+      setPredictions(newPredictions);
+      setAiInsights(data.aiInsight || '');
+      
+    } catch (error) {
+      console.error('AI predictions error:', error);
+      
+      // Fallback to rule-based predictions
+      const fallbackPredictions: Prediction[] = [];
+      
+      if (currentData.soilMoisture < 30) {
+        fallbackPredictions.push({
+          type: 'irrigation',
+          confidence: 0.85,
+          recommendation: 'Irrigation recommended within 24 hours. Soil moisture is below optimal range.',
+          timeframe: '24 hours',
+          priority: 'high'
+        });
+      }
+      
+      if (currentData.temperature > 32) {
+        fallbackPredictions.push({
+          type: 'pest_control',
+          confidence: 0.72,
+          recommendation: 'High temperature may increase pest activity. Monitor for aphids and spider mites.',
+          timeframe: '3-5 days',
+          priority: 'medium'
+        });
+      }
+      
+      setPredictions(fallbackPredictions);
+    } finally {
+      setLoading(false);
     }
-    
-    // Temperature-based predictions
-    if (currentData.temperature > 32) {
-      newPredictions.push({
-        type: 'pest_control',
-        confidence: 0.72,
-        recommendation: 'High temperature may increase pest activity. Monitor for aphids and spider mites.',
-        timeframe: '3-5 days',
-        priority: 'medium'
-      });
-    }
-    
-    // Humidity-based predictions
-    if (currentData.humidity > 80) {
-      newPredictions.push({
-        type: 'pest_control',
-        confidence: 0.68,
-        recommendation: 'High humidity increases fungal disease risk. Improve ventilation if possible.',
-        timeframe: '2-3 days',
-        priority: 'medium'
-      });
-    }
-    
-    // Growth optimization
-    if (currentData.temperature >= 20 && currentData.temperature <= 25 && 
-        currentData.humidity >= 50 && currentData.humidity <= 70 &&
-        currentData.soilMoisture >= 40) {
-      newPredictions.push({
-        type: 'fertilization',
-        confidence: 0.79,
-        recommendation: 'Optimal conditions for nutrient uptake. Consider applying fertilizer for maximum growth.',
-        timeframe: '1-2 days',
-        priority: 'low'
-      });
-    }
-    
-    setPredictions(newPredictions);
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -101,15 +146,22 @@ const MLPredictions: React.FC<MLPredictionsProps> = ({ currentData, historicalDa
 
   return (
     <div className="bg-white rounded-xl p-6 shadow-lg">
-      <div className="flex items-center gap-3 mb-4">
-        <Brain className="w-6 h-6 text-purple-600" />
-        <h2 className="text-xl font-bold text-gray-800">AI Predictions & Recommendations</h2>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <Brain className="w-6 h-6 text-purple-600" />
+          <h2 className="text-xl font-bold text-gray-800">AI Predictions & Recommendations</h2>
+        </div>
+        {!loading && (
+          <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded-full">
+            Powered by OpenAI
+          </span>
+        )}
       </div>
       
       {loading ? (
         <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
-          <p className="text-gray-600 mt-2">Analyzing data...</p>
+          <Loader className="w-8 h-8 animate-spin mx-auto text-purple-600" />
+          <p className="text-gray-600 mt-2">AI analyzing farm conditions...</p>
         </div>
       ) : predictions.length > 0 ? (
         <div className="space-y-4">
@@ -141,11 +193,19 @@ const MLPredictions: React.FC<MLPredictionsProps> = ({ currentData, historicalDa
         </div>
       )}
       
+      {aiInsights && (
+        <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+          <h4 className="font-semibold text-blue-800 mb-2">AI Expert Analysis</h4>
+          <p className="text-sm text-blue-700">{aiInsights}</p>
+        </div>
+      )}
+      
       <button
         onClick={generatePredictions}
-        className="w-full mt-4 bg-purple-500 text-white py-2 px-4 rounded-lg hover:bg-purple-600 transition-colors"
+        disabled={loading}
+        className="w-full mt-4 bg-purple-500 text-white py-2 px-4 rounded-lg hover:bg-purple-600 disabled:opacity-50 transition-colors"
       >
-        Refresh Predictions
+        {loading ? 'Generating AI Insights...' : 'Refresh AI Predictions'}
       </button>
     </div>
   );

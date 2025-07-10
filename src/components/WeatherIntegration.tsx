@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { Cloud, Sun, CloudRain, Wind, Thermometer, Droplets } from 'lucide-react';
+import { Cloud, Sun, CloudRain, Wind, Thermometer, Droplets, MapPin } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface WeatherData {
   temperature: number;
@@ -26,40 +27,56 @@ const WeatherIntegration: React.FC<WeatherIntegrationProps> = ({ location, onWea
   const [apiKey, setApiKey] = useState(localStorage.getItem('weatherApiKey') || '');
 
   const fetchWeatherData = async () => {
-    if (!apiKey) return;
-    
     setLoading(true);
     try {
-      // Mock weather data for demo - replace with actual API call
-      const mockWeather: WeatherData = {
-        temperature: 25 + Math.random() * 10,
-        humidity: 60 + Math.random() * 20,
-        windSpeed: 5 + Math.random() * 15,
-        condition: ['sunny', 'cloudy', 'rainy'][Math.floor(Math.random() * 3)],
-        forecast: Array.from({ length: 5 }, (_, i) => ({
-          day: new Date(Date.now() + i * 24 * 60 * 60 * 1000).toLocaleDateString([], { weekday: 'short' }),
-          high: 20 + Math.random() * 15,
-          low: 10 + Math.random() * 10,
-          condition: ['sunny', 'cloudy', 'rainy'][Math.floor(Math.random() * 3)]
+      const { data, error } = await supabase.functions.invoke('weather-api', {
+        body: { location }
+      });
+
+      if (error) throw error;
+
+      const weatherData: WeatherData = {
+        temperature: data.current.temperature,
+        humidity: data.current.humidity,
+        windSpeed: data.current.windSpeed,
+        condition: data.current.condition.toLowerCase(),
+        forecast: data.forecast.map((day: any) => ({
+          day: new Date(day.date).toLocaleDateString([], { weekday: 'short' }),
+          high: day.maxTemp,
+          low: day.minTemp,
+          condition: day.condition.toLowerCase()
         }))
       };
       
-      setWeather(mockWeather);
-      onWeatherUpdate(mockWeather);
+      setWeather(weatherData);
+      onWeatherUpdate(weatherData);
     } catch (error) {
       console.error('Weather fetch error:', error);
+      // Fallback data if API fails
+      const fallbackWeather: WeatherData = {
+        temperature: 25,
+        humidity: 60,
+        windSpeed: 10,
+        condition: 'sunny',
+        forecast: Array.from({ length: 5 }, (_, i) => ({
+          day: new Date(Date.now() + i * 24 * 60 * 60 * 1000).toLocaleDateString([], { weekday: 'short' }),
+          high: 25,
+          low: 15,
+          condition: 'sunny'
+        }))
+      };
+      setWeather(fallbackWeather);
+      onWeatherUpdate(fallbackWeather);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (apiKey) {
-      fetchWeatherData();
-      const interval = setInterval(fetchWeatherData, 10 * 60 * 1000); // Every 10 minutes
-      return () => clearInterval(interval);
-    }
-  }, [apiKey, location]);
+    fetchWeatherData();
+    const interval = setInterval(fetchWeatherData, 10 * 60 * 1000); // Every 10 minutes
+    return () => clearInterval(interval);
+  }, [location]);
 
   const getWeatherIcon = (condition: string) => {
     switch (condition) {
@@ -72,26 +89,15 @@ const WeatherIntegration: React.FC<WeatherIntegrationProps> = ({ location, onWea
 
   return (
     <div className="bg-white rounded-xl p-6 shadow-lg">
-      <h2 className="text-xl font-bold text-gray-800 mb-4">Weather Integration</h2>
-      
-      {!apiKey ? (
-        <div className="space-y-4">
-          <p className="text-gray-600">Enter your weather API key to get local weather data:</p>
-          <input
-            type="text"
-            placeholder="Weather API Key"
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2"
-          />
-          <button
-            onClick={() => localStorage.setItem('weatherApiKey', apiKey)}
-            className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
-          >
-            Save API Key
-          </button>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-bold text-gray-800">Weather Integration</h2>
+        <div className="flex items-center gap-2 text-sm text-gray-600">
+          <MapPin className="w-4 h-4" />
+          <span>{location}</span>
         </div>
-      ) : weather ? (
+      </div>
+      
+      {weather ? (
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="flex items-center gap-2">

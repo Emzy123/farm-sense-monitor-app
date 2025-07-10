@@ -1,1 +1,13 @@
 project_id = "lnfqwhplvmmstfwtbtae"
+
+[functions.weather-api]
+verify_jwt = false
+
+[functions.ml-predictions]
+verify_jwt = false
+
+[functions.seam-iot]
+verify_jwt = false
+
+[functions.nasa-soil]
+verify_jwt = false
