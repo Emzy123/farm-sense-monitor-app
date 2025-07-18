@@ -46,7 +46,26 @@ const Index = () => {
     if (!isOnline) {
       showToast('Offline: Showing cached data', 'info');
     }
-  }, [isOnline]);
+
+    // Device notification for critical readings
+    if (document.visibilityState === 'visible' && 'Notification' in window && Notification.permission === 'granted') {
+      const criticals = [
+        { type: 'temperature' as 'temperature', value: currentData.temperature },
+        { type: 'humidity' as 'humidity', value: currentData.humidity },
+        { type: 'soilMoisture' as 'soilMoisture', value: currentData.soilMoisture },
+      ].filter(({ type, value }) => getDataStatus(type, value) === 'critical');
+
+      criticals.forEach(({ type, value }) => {
+        const typeLabel = type.charAt(0).toUpperCase() + type.slice(1);
+        const body = `${typeLabel} critical: ${value}`;
+        new Notification('Critical Farm Alert', {
+          body,
+          icon: '/favicon.png',
+          tag: `critical-${type}`
+        });
+      });
+    }
+  }, [isOnline, currentData]);
 
   return (
     <div className="min-h-screen bg-gray-100 pb-20">

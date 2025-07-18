@@ -11,6 +11,7 @@ import MultiSensorConfig from '@/components/MultiSensorConfig';
 import ToastNotification from '@/components/ToastNotification';
 import { useAuth } from '@/hooks/useAuth';
 import { useFarmData } from '@/hooks/useFarmData';
+import { Bell } from 'lucide-react';
 
 const Settings = () => {
   console.log('Settings page loading...');
@@ -71,6 +72,38 @@ const Settings = () => {
     showToast('Multi-sensor configuration updated', 'success');
   };
 
+  const [deviceNotificationsEnabled, setDeviceNotificationsEnabled] = useState(() => {
+    return localStorage.getItem('deviceNotificationsEnabled') === 'true';
+  });
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>(
+    typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'default'
+  );
+
+  const handleRequestPermission = async () => {
+    if ('Notification' in window) {
+      const permission = await Notification.requestPermission();
+      setNotificationPermission(permission);
+      if (permission === 'granted') {
+        setDeviceNotificationsEnabled(true);
+        localStorage.setItem('deviceNotificationsEnabled', 'true');
+        showToast('Device notifications enabled!', 'success');
+      } else {
+        setDeviceNotificationsEnabled(false);
+        localStorage.setItem('deviceNotificationsEnabled', 'false');
+        showToast('Device notifications not enabled', 'info');
+      }
+    }
+  };
+
+  const handleToggleDeviceNotifications = (enabled: boolean) => {
+    setDeviceNotificationsEnabled(enabled);
+    localStorage.setItem('deviceNotificationsEnabled', enabled ? 'true' : 'false');
+    showToast(
+      enabled ? 'Device notifications enabled!' : 'Device notifications disabled.',
+      enabled ? 'success' : 'info'
+    );
+  };
+
 
   return (
     <div className="min-h-screen bg-gray-100 pb-20">
@@ -97,6 +130,41 @@ const Settings = () => {
 
         {/* Alert Thresholds */}
         <ThresholdConfig onSave={handleThresholdSave} />
+
+        {/* Device Notification Settings */}
+        <div className="bg-white rounded-xl p-6 shadow-lg">
+          <div className="flex items-center gap-3 mb-4">
+            <Bell className="w-6 h-6 text-blue-600" />
+            <h2 className="text-xl font-bold text-gray-800">Device Notifications</h2>
+          </div>
+          <div className="mb-4">
+            <span className="font-medium">Permission Status: </span>
+            <span className={
+              notificationPermission === 'granted' ? 'text-green-600' :
+              notificationPermission === 'denied' ? 'text-red-600' : 'text-yellow-600'
+            }>
+              {notificationPermission.charAt(0).toUpperCase() + notificationPermission.slice(1)}
+            </span>
+          </div>
+          {notificationPermission !== 'granted' ? (
+            <button
+              onClick={handleRequestPermission}
+              className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+            >
+              Enable Device Notifications
+            </button>
+          ) : (
+            <label className="flex items-center gap-3 mt-2">
+              <input
+                type="checkbox"
+                checked={deviceNotificationsEnabled}
+                onChange={e => handleToggleDeviceNotifications(e.target.checked)}
+                className="rounded border-gray-300 text-blue-500 focus:ring-blue-500"
+              />
+              <span className="text-gray-700">Receive device notifications for critical readings</span>
+            </label>
+          )}
+        </div>
 
         {/* Notification Settings */}
         <NotificationSettingsComponent onSave={handleNotificationSave} />

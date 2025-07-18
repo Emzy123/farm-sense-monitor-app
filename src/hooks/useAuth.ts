@@ -113,7 +113,7 @@ export const useAuthHook = () => {
   const register = async (email: string, password: string, name: string, farmName: string) => {
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.signUp({
+      const { error, data } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -125,10 +125,17 @@ export const useAuthHook = () => {
       });
 
       if (error) {
+        console.error('Supabase registration error:', error);
         throw error;
       }
-
+      if (!data?.user) {
+        console.error('Supabase registration: No user returned', data);
+        throw new Error('Registration failed: No user returned');
+      }
       // User will be automatically set by the auth state change listener
+    } catch (err) {
+      console.error('Registration failed:', err);
+      throw err;
     } finally {
       setIsLoading(false);
     }
